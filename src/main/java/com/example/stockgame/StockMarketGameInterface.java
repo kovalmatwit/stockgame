@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.control.TextField;
@@ -23,6 +24,8 @@ public class StockMarketGameInterface extends Application {
     private int dayNumber = 1;
     private double portfolioCost;
     private double availableCash = 1000;
+    private double previousAvailableCash = 1000; 
+    private double previousPortfolioCost = 0; 
 
     @Override
     public void start(Stage primaryStage) {
@@ -33,34 +36,34 @@ public class StockMarketGameInterface extends Application {
         primaryStage.setResizable(false);
         primaryStage.show();
     }
-
+   
     /**
      * Sets up the main menu interface.
      * Displays available cash, portfolio button, next day button, and a list of all stocks.
      */
+  
     private void setupMainMenu() {
-        Text availableCashText = new Text("Available cash: " + availableCash);
-        availableCashText.setText("Available cash: $" + String.format("%.2f", availableCash));
+        Text availableCashText = new Text("Available cash: $" + String.format("%.2f", availableCash));
         availableCashText.setFont(Font.font("Arial", FontWeight.BOLD, 16));
 
+        // Indicator for available cash change
+        String cashIndicator = availableCash > previousAvailableCash ? "↑" : (availableCash < previousAvailableCash ? "↓" : "");
+        Text cashChangeText = new Text(cashIndicator);
+        cashChangeText.setFill(availableCash > previousAvailableCash ? Color.GREEN : (availableCash < previousAvailableCash ? Color.RED : Color.BLACK));
+        cashChangeText.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
         Button myPortfolioButton = new Button("My Portfolio");
-        myPortfolioButton.setPrefSize(100,20);
+        myPortfolioButton.setPrefSize(100, 20);
         myPortfolioButton.setOnAction(e -> setupPortfolioScreen());
 
         Button nextDayButton = new Button("Next Day");
-        nextDayButton.setPrefSize(80,20);
+        nextDayButton.setPrefSize(80, 20);
         nextDayButton.setOnAction(e -> updateAllStocks());
 
-        HBox topLayout = new HBox();
+        HBox topLayout = new HBox(10);
         topLayout.setAlignment(Pos.CENTER);
         topLayout.setPadding(new Insets(10));
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        spacer.setMaxWidth(300);
-
-        topLayout.setSpacing(100);
-        topLayout.getChildren().addAll(availableCashText, myPortfolioButton, nextDayButton);
+        topLayout.getChildren().addAll(availableCashText, cashChangeText, myPortfolioButton, nextDayButton);
 
         GridPane headerGrid = new GridPane();
         headerGrid.setHgap(10);
@@ -82,17 +85,23 @@ public class StockMarketGameInterface extends Application {
 
         rootLayout.setCenter(centerLayout);
     }
-
     /**
      * Sets up the portfolio screen.
      * Displays the total value of the user's portfolio, the current day, a main menu button,
      * and a list of stocks that the user has bought.
      */
+
     private void setupPortfolioScreen() {
         updatePortfolioPrice();
 
         Text portfolioCosteText = new Text(String.format("Portfolio price: %.2f", portfolioCost));
         portfolioCosteText.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+        // Indicator for portfolio cost change
+        String portfolioIndicator = portfolioCost > previousPortfolioCost ? "↑" : (portfolioCost < previousPortfolioCost ? "↓" : "");
+        Text portfolioChangeText = new Text(portfolioIndicator);
+        portfolioChangeText.setFill(portfolioCost > previousPortfolioCost ? Color.GREEN : (portfolioCost < previousPortfolioCost ? Color.RED : Color.BLACK));
+        portfolioChangeText.setFont(Font.font("Arial", FontWeight.BOLD, 16));
 
         Text dayNumberText = new Text(String.format("Day %s", dayNumber));
         dayNumberText.setFont(Font.font("Arial", FontWeight.BOLD, 16));
@@ -100,11 +109,9 @@ public class StockMarketGameInterface extends Application {
         Button mainMenuButton = new Button("Main Menu");
         mainMenuButton.setOnAction(e -> setupMainMenu());
 
-        HBox topLayout = new HBox();
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        topLayout.getChildren().addAll(portfolioCosteText, mainMenuButton, dayNumberText);
-        topLayout.setSpacing(100);
+        HBox topLayout = new HBox(10);
+        topLayout.setAlignment(Pos.CENTER);
+        topLayout.getChildren().addAll(portfolioCosteText, portfolioChangeText, mainMenuButton, dayNumberText);
 
         GridPane headerGrid = new GridPane();
         headerGrid.setHgap(10);
@@ -185,12 +192,14 @@ public class StockMarketGameInterface extends Application {
                 stockGrid.add(new Text(String.format("$%.2f", (stock.getPrice() * stock.getAmountOwned()))), 2, rowIndex);
                 stockGrid.add(new Text(String.format("%.4f",stock.getAmountOwned())), 3, rowIndex);
                 stockGrid.add(sellButton, 4, rowIndex);
+                checkGameOver();
             } else {
                 Button buyButton = new Button("Buy");
                 buyButton.setPrefSize(80, 20);
                 buyButton.setOnAction(e -> showBuySellStockWindow(stock, false));
                 stockGrid.add(new Text(String.format("$%.2f", stock.getPrice())), 2, rowIndex);
                 stockGrid.add(buyButton, 3, rowIndex);
+                checkGameOver(); 
             }
             rowIndex++;
         }
@@ -293,6 +302,9 @@ public class StockMarketGameInterface extends Application {
             } catch (NumberFormatException ex) {
                 System.out.println("Invalid input");
             }
+            finally {
+                checkGameOver();
+            }
         });
 
         VBox layout = new VBox(10);
@@ -329,7 +341,10 @@ public class StockMarketGameInterface extends Application {
      * And synchronizes the prices of stocks in the user's portfolio with those in the general stock list.
      */
     private void updateAllStocks(){
-        for (Stock stock : allStocks) {
+    	 previousAvailableCash = availableCash;
+    	    previousPortfolioCost = portfolioCost;
+
+    	for (Stock stock : allStocks) {
             stock.updatePrice();
         }
 
@@ -340,9 +355,42 @@ public class StockMarketGameInterface extends Application {
                 }
             }
         }
+        checkGameOver(); 
 
         dayNumber++;
         updatePortfolioPrice();
+        setupMainMenu();
+    }
+    private void checkGameOver() {
+        if (availableCash <= 0 && boughtStocks.isEmpty()) {
+            setupGameOverScreen();
+        } 
+    }
+    private void setupGameOverScreen() {
+
+    	VBox layout = new VBox(20);
+            layout.setAlignment(Pos.CENTER);
+            Text gameOverText = new Text("Game Over");
+            gameOverText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+
+            Button restartButton = new Button("Restart");
+            restartButton.setOnAction(e -> restartGame());
+
+            Button exitButton = new Button("Exit");
+            exitButton.setOnAction(e -> System.exit(0));
+
+            layout.getChildren().addAll(gameOverText, restartButton, exitButton);
+            rootLayout.setCenter(layout);
+        };
+    
+
+    private void restartGame() {
+        availableCash = 1000; 
+        previousAvailableCash = 1000;
+        boughtStocks.clear(); 
+        previousPortfolioCost = 0;
+        dayNumber = 1;
+        initializeStockList(); 
         setupMainMenu();
     }
 
