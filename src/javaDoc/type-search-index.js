@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"com.example.stockgame","l":"HighRiskStock"},{"p":"com.example.stockgame","l":"LowRiskStock"},{"p":"com.example.stockgame","l":"MidRiskStock"},{"p":"com.example.stockgame","l":"Stock"},{"p":"com.example.stockgame","l":"StockMarketGameInterface"}];updateSearchResults();
